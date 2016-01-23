@@ -29,7 +29,6 @@ func ex(fn http.Handler) http.HandlerFunc {
 	}
 }
 
-
 type HttpError int
 type HttpUserError error
 type HttpServerError error
@@ -73,4 +72,3 @@ func check(err error) {
 		abort(500)
 	}
 }
-

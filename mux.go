@@ -1,21 +1,21 @@
 package main
 
 type Register struct {
-	Message chan interface{}
+	Message  chan interface{}
 	Response chan int64
 }
 
 type Mux struct {
-	Register chan Register
+	Register   chan Register
 	Unregister chan int64
-	Input chan interface{}
+	Input      chan interface{}
 }
 
 func NewMux() *Mux {
-	mux := &Mux {
-		Register: make(chan Register),
+	mux := &Mux{
+		Register:   make(chan Register),
 		Unregister: make(chan int64),
-		Input: make(chan interface{}, 1),
+		Input:      make(chan interface{}, 1),
 	}
 
 	go func() {

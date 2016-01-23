@@ -1,32 +1,32 @@
 package main
 
 import (
-        "bitbucket.org/mjl/asset"
-        "bitbucket.org/mjl/httpvfs"
-        "golang.org/x/tools/godoc/vfs"
-	"flag"
-	"io/ioutil"
-	"net/http"
-	"log"
-	"fmt"
-	"encoding/json"
+	"bitbucket.org/mjl/asset"
+	"bitbucket.org/mjl/httpvfs"
 	"encoding/base64"
-	"io"
-	"time"
+	"encoding/json"
+	"flag"
+	"fmt"
 	mqtt "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 	ttnshared "github.com/TheThingsNetwork/server-shared"
+	"golang.org/x/tools/godoc/vfs"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"time"
 )
 
 type Config struct {
-        Addr          string
-	Verbose		bool
+	Addr    string
+	Verbose bool
 }
 
 var config Config
 
 func init() {
-        flag.StringVar(&config.Addr, "addr", "localhost:8000", "Address to listen on")
-        flag.BoolVar(&config.Verbose, "verbose", false, "Verbose logging")
+	flag.StringVar(&config.Addr, "addr", "localhost:8000", "Address to listen on")
+	flag.BoolVar(&config.Verbose, "verbose", false, "Verbose logging")
 }
 
 var fs vfs.FileSystem
@@ -86,16 +86,16 @@ func packetHandler(client *mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
-	value := map[string]interface{} {
-		"devAddr": packet.NodeEui,
+	value := map[string]interface{}{
+		"devAddr":    packet.NodeEui,
 		"gatewayEui": packet.GatewayEui,
 		"time":       packet.Time,
 		"frequency":  *packet.Frequency,
 		"dataRate":   packet.DataRate,
 		"rssi":       *packet.Rssi,
 		"snr":        *packet.Snr,
-		"data":	fmt.Sprintf("%s", data),
-		"dataHex":	fmt.Sprintf("%x", data),
+		"data":       fmt.Sprintf("%s", data),
+		"dataHex":    fmt.Sprintf("%x", data),
 	}
 
 	if config.Verbose {
@@ -177,9 +177,9 @@ func indexhtml(w http.ResponseWriter, r *http.Request) {
 
 	f, err := fs.Open("/index.html")
 	check(err)
-        h := w.Header()
-        h.Set("content-type", "text/html")
-        h.Set("cache-control", "no-cache, max-age=0")
+	h := w.Header()
+	h.Set("content-type", "text/html")
+	h.Set("cache-control", "no-cache, max-age=0")
 	io.Copy(w, f)
 	f.Close()
 }
@@ -205,7 +205,6 @@ func gateways(w http.ResponseWriter, r *http.Request) {
 	h.Set("cache-control", "max-age=60")
 	_, _ = w.Write(buf)
 }
-
 
 var mqttClient *mqtt.Client
 
@@ -247,7 +246,7 @@ func main() {
 			go fetch()
 			buf = <-bufc
 			if buf != nil {
-				bufEnd = time.Now().Add(time.Second*120)
+				bufEnd = time.Now().Add(time.Second * 120)
 				break
 			}
 			time.Sleep(time.Second)
@@ -268,31 +267,31 @@ func main() {
 				fetching = false
 				if nbuf != nil {
 					buf = nbuf
-					bufEnd = time.Now().Add(time.Second*120)
+					bufEnd = time.Now().Add(time.Second * 120)
 				}
 			}
 		}
 	}()
 
-        flag.Parse()
+	flag.Parse()
 	if len(flag.Args()) != 0 {
 		log.Fatal("bad usage, no arguments allowed")
 	}
 
-        fs = asset.Fs()
-        if err := asset.Error(); err != nil {
-                log.Println("using local assets")
-                fs = vfs.OS("assets")
-        }
+	fs = asset.Fs()
+	if err := asset.Error(); err != nil {
+		log.Println("using local assets")
+		fs = vfs.OS("assets")
+	}
 
 	mqttClient = mqttConnect()
 
 	http.Handle("/", ex(http.HandlerFunc(indexhtml)))
-        http.Handle("/s/", http.FileServer(httpvfs.New(fs)))
+	http.Handle("/s/", http.FileServer(httpvfs.New(fs)))
 	http.Handle("/sub/packets/", ex(http.HandlerFunc(makeSubscribe(packetMux, "/sub/packets/"))))
 	http.Handle("/sub/gateways/", ex(http.HandlerFunc(makeSubscribe(gatewayMux, "/sub/gateways/"))))
 	http.Handle("/gateways/", ex(http.HandlerFunc(gateways)))
 
-        log.Println("listening on", config.Addr)
+	log.Println("listening on", config.Addr)
 	log.Fatal(http.ListenAndServe(config.Addr, nil))
 }
