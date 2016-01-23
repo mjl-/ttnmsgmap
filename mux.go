@@ -1,9 +1,5 @@
 package main
 
-import (
-	"log"
-)
-
 type Register struct {
 	Message chan interface{}
 	Response chan int64
@@ -31,7 +27,6 @@ func NewMux() *Mux {
 				lastId += 1
 				clients[lastId] = r.Message
 				r.Response <- lastId
-				log.Println("mux, clients now", clients)
 
 			case id := <-mux.Unregister:
 				delete(clients, id)
