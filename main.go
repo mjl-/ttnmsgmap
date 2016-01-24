@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"bitbucket.org/mjl/asset"
 	"bitbucket.org/mjl/httpvfs"
 	"encoding/base64"
@@ -38,15 +39,22 @@ func mqttConnect() *mqtt.Client {
 
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker("tcp://croft.thethings.girovito.nl:1883")
-	opts.SetClientID("mqttsse-0")
+	id := make([]byte, 6)
+	_, err := rand.Read(id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	opts.SetClientID(fmt.Sprintf("ttnmsgmap-%x", id))
 	opts.SetKeepAlive(20)
 	opts.SetOnConnectHandler(func(client *mqtt.Client) {
 		tokenc := make(chan mqtt.Token)
-		go func() {
-			token := mqttClient.Subscribe("nodes/+/packets", 0, packetHandler)
+		subscribe := func(topic string, handler mqtt.MessageHandler) {
+			token := mqttClient.Subscribe(topic, 0, handler)
 			token.Wait()
 			tokenc <- token
-		}()
+		}
+		go subscribe("nodes/+/packets", packetHandler)
+		go subscribe("gateways/+/status", gatewayHandler)
 		t0 := <-tokenc
 		t1 := <-tokenc
 		if t0.Error() != nil {
