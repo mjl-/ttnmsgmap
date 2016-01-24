@@ -1,6 +1,6 @@
 # ttnmsgmap
 
-ttnmsgmap shows gateways and messages from theThingsNetwork on a map.
+ttnmsgmap shows gateways and messages from theThingsNetwork (demo network) on a map.
 
 You can see this in action at:
 
@@ -30,10 +30,16 @@ The HTML/JavaScript app is created with:
 
 # todo
 
-- button to stop showing popups for messages
+feel free to tackle any of the todo's below.  contact me at mechiel@ueber.net.
+
+- button to toggle showing popups for messages
+- button to toggle moving the map to show popups (if you are zoomed in at a small country or city, your map will move all over the place).
 - make gateways clickable, show meta info about them.
 	- name?
+	- list of last 10 messages received by this gateway.
 	- image of device, based on eui.
 
 - show activity of gateway by using colors
-- set cors headers
+- set cors headers on the gateways api endpoint, maybe the SSE-ones too.
+- find a way to workaround internet explorer not supporting server-sent-events.
+- maybe have a way to list last 10 messages for a devaddr.
