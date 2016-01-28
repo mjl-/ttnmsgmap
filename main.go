@@ -1,9 +1,9 @@
 package main
 
 import (
-	"crypto/rand"
 	"bitbucket.org/mjl/asset"
 	"bitbucket.org/mjl/httpvfs"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
@@ -132,6 +132,8 @@ func gatewayHandler(client *mqtt.Client, msg mqtt.Message) {
 
 func makeSubscribe(mux *Mux, path string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
 		needget(r)
 		if r.URL.Path != path {
 			abort(404)
@@ -182,6 +184,8 @@ func makeSubscribe(mux *Mux, path string) http.HandlerFunc {
 }
 
 func indexhtml(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
 	needget(r)
 	if r.URL.Path != "/" {
 		abort(404)
@@ -189,11 +193,11 @@ func indexhtml(w http.ResponseWriter, r *http.Request) {
 
 	f, err := fs.Open("/index.html")
 	check(err)
+	defer f.Close()
 	h := w.Header()
 	h.Set("content-type", "text/html")
 	h.Set("cache-control", "no-cache, max-age=0")
-	io.Copy(w, f)
-	f.Close()
+	_, _ = io.Copy(w, f)
 }
 
 var gatewaysBuf []byte
@@ -201,6 +205,8 @@ var gatewaysEnd time.Time
 
 // for speed, and so we can run on https (ttn websites doesn't have https).
 func gateways(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
 	needget(r)
 	if r.URL.Path != "/gateways/" {
 		abort(404)
