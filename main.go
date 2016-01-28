@@ -37,14 +37,18 @@ var gatewayMux *Mux
 func mqttConnect() *mqtt.Client {
 	var mqttClient *mqtt.Client
 
+	clientId := func() string {
+		id := make([]byte, 6)
+		_, err := rand.Read(id)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return fmt.Sprintf("ttnmsgmap-%x", id)
+	}
+
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker("tcp://croft.thethings.girovito.nl:1883")
-	id := make([]byte, 6)
-	_, err := rand.Read(id)
-	if err != nil {
-		log.Fatal(err)
-	}
-	opts.SetClientID(fmt.Sprintf("ttnmsgmap-%x", id))
+	opts.SetClientID(clientId())
 	opts.SetKeepAlive(20)
 	opts.SetOnConnectHandler(func(client *mqtt.Client) {
 		tokenc := make(chan mqtt.Token)
