@@ -33,7 +33,6 @@ The HTML/JavaScript app is created with:
 feel free to tackle any of the todo's below.  contact me at mechiel@ueber.net.
 
 - button to toggle showing popups for messages
-- don't raise 400's when requesting favicons.
 - button to toggle moving the map to show popups (if you are zoomed in at a small country or city, your map will move all over the place).
 - make gateways clickable, show meta info about them.
 	- name?
