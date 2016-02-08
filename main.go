@@ -134,9 +134,13 @@ func makeSubscribe(mux *Mux, path string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 
-		needget(r)
+		if r.Method != "GET" {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		if r.URL.Path != path {
-			abort(404)
+			http.NotFound(w, r)
+			return
 		}
 
 		f, ok := w.(http.Flusher)
@@ -170,7 +174,7 @@ func makeSubscribe(mux *Mux, path string) http.HandlerFunc {
 			}
 			_, err = fmt.Fprintf(w, "data: %s\n\n", data)
 			if err != nil {
-				panic("sse client gone")
+				return
 			}
 			// xxx this should return an error...
 			f.Flush()
@@ -186,13 +190,20 @@ func makeSubscribe(mux *Mux, path string) http.HandlerFunc {
 func indexhtml(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	needget(r)
+	if r.Method != "GET" {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	if r.URL.Path != "/" {
-		abort(404)
+		http.NotFound(w, r)
+		return
 	}
 
 	f, err := fs.Open("/index.html")
-	check(err)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 	defer f.Close()
 	h := w.Header()
 	h.Set("content-type", "text/html")
@@ -207,16 +218,21 @@ var gatewaysEnd time.Time
 func gateways(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	needget(r)
+	if r.Method != "GET" {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	if r.URL.Path != "/gateways/" {
-		abort(404)
+		http.NotFound(w, r)
+		return
 	}
 
 	c := make(chan []byte)
 	ttnGateways <- c
 	buf := <-c
 	if buf == nil {
-		abort(503)
+		http.Error(w, "could not fetch gateways", http.StatusInternalServerError)
+		return
 	}
 	h := w.Header()
 	h.Set("content-type", "application/json")
@@ -304,11 +320,11 @@ func main() {
 
 	mqttClient = mqttConnect()
 
-	http.Handle("/", ex(http.HandlerFunc(indexhtml)))
+	http.HandleFunc("/", indexhtml)
 	http.Handle("/s/", http.FileServer(httpvfs.New(fs)))
-	http.Handle("/sub/packets/", ex(http.HandlerFunc(makeSubscribe(packetMux, "/sub/packets/"))))
-	http.Handle("/sub/gateways/", ex(http.HandlerFunc(makeSubscribe(gatewayMux, "/sub/gateways/"))))
-	http.Handle("/gateways/", ex(http.HandlerFunc(gateways)))
+	http.HandleFunc("/sub/packets/", makeSubscribe(packetMux, "/sub/packets/"))
+	http.HandleFunc("/sub/gateways/", makeSubscribe(gatewayMux, "/sub/gateways/"))
+	http.HandleFunc("/gateways/", gateways)
 
 	log.Println("listening on", config.Addr)
 	log.Fatal(http.ListenAndServe(config.Addr, nil))
