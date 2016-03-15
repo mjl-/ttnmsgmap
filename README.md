@@ -26,7 +26,9 @@ The HTML/JavaScript app is created with:
 
 # compiling
 
-	go build && sh -c '(rm assets.zip; cd assets && zip -r0 ../assets.zip .) && cat assets.zip >>ttnmsgmap'
+	go build &&
+	(rm assets.zip; cd assets && zip -r0 ../assets.zip .) &&
+	sh -c 'cat assets.zip >>ttnmsgmap'
 
 # todo
 
