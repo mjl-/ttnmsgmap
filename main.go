@@ -35,8 +35,6 @@ var packetMux *Mux
 var gatewayMux *Mux
 
 func mqttConnect() *mqtt.Client {
-	var mqttClient *mqtt.Client
-
 	clientId := func() string {
 		id := make([]byte, 6)
 		_, err := rand.Read(id)
@@ -46,6 +44,19 @@ func mqttConnect() *mqtt.Client {
 		return fmt.Sprintf("ttnmsgmap-%x", id)
 	}
 
+	connect := func(client *mqtt.Client) {
+		for _, t := range []time.Duration{0, 5, 20, 60, 300} {
+			time.Sleep(time.Second * t)
+			if token := client.Connect(); token.Wait() && token.Error() != nil {
+				log.Println("reconnecting to mqtt:", token.Error(), "; trying again later")
+				continue
+			}
+			log.Println("mqtt reconnected")
+			return
+		}
+		log.Fatal("could not get mqtt connection, exiting")
+	}
+
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker("tcp://croft.thethings.girovito.nl:1883")
 	opts.SetClientID(clientId())
@@ -53,7 +64,7 @@ func mqttConnect() *mqtt.Client {
 	opts.SetOnConnectHandler(func(client *mqtt.Client) {
 		tokenc := make(chan mqtt.Token)
 		subscribe := func(topic string, handler mqtt.MessageHandler) {
-			token := mqttClient.Subscribe(topic, 0, handler)
+			token := client.Subscribe(topic, 0, handler)
 			token.Wait()
 			tokenc <- token
 		}
@@ -70,17 +81,11 @@ func mqttConnect() *mqtt.Client {
 	})
 	opts.SetConnectionLostHandler(func(client *mqtt.Client, err error) {
 		log.Println("mqtt connection lost (reconnecting):", err)
+		go connect(client)
 	})
-	mqttClient = mqtt.NewClient(opts)
-
-	// making this non-fatal. maybe the library will connect again later?
-	go func() {
-		if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-			log.Println("connecting to mqtt:", token.Error())
-		}
-	}()
-
-	return mqttClient
+	c := mqtt.NewClient(opts)
+	go connect(c)
+	return c
 }
 
 func packetHandler(client *mqtt.Client, msg mqtt.Message) {
@@ -241,7 +246,6 @@ func gateways(w http.ResponseWriter, r *http.Request) {
 }
 
 var mqttClient *mqtt.Client
-
 var ttnGateways chan chan []byte
 
 func main() {
